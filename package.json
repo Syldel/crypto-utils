@@ -1,6 +1,6 @@
 {
   "name": "@syldel/crypto-utils",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Lightweight JWT and AES-256-GCM utilities",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
