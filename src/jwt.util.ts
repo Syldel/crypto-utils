@@ -1,47 +1,43 @@
-import * as crypto from 'crypto';
+import CryptoJS from 'crypto-js';
+import { EncodingHelper } from './encoding.helper';
 
 export class PureJwtUtil {
+  static sign(payload: Record<string, any>, secret: string): string {
+    const header = { alg: 'HS256', typ: 'JWT' };
+
+    const encodedHeader = EncodingHelper.objToBase64Url(header);
+    const encodedPayload = EncodingHelper.objToBase64Url(payload);
+
+    const signature = CryptoJS.HmacSHA256(`${encodedHeader}.${encodedPayload}`, secret);
+
+    // Conversion du WordArray CryptoJS en Base64URL
+    const encodedSignature = EncodingHelper.toBase64Url(signature.toString(CryptoJS.enc.Base64));
+
+    return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
+  }
+
   static verify<T extends object>(token: string, secret: string): T {
-    const parts = token.split('.');
-    if (parts.length !== 3) throw new Error('Invalid token format');
+    const [headerB64, payloadB64, signatureB64] = token.split('.');
+    if (!signatureB64) throw new Error('Invalid token format');
 
-    const [headerB64, payloadB64, signatureB64] = parts;
-    const dataToVerify = `${headerB64}.${payloadB64}`;
-
-    const expectedSignature = crypto
-      .createHmac('sha256', secret)
-      .update(dataToVerify)
-      .digest('base64url');
+    const expectedSignature = EncodingHelper.toBase64Url(
+      CryptoJS.HmacSHA256(`${headerB64}.${payloadB64}`, secret).toString(CryptoJS.enc.Base64),
+    );
 
     if (signatureB64 !== expectedSignature) {
       throw new Error('Invalid signature');
     }
 
-    const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as T;
-    const payloadRecord = payload as Record<string, unknown>;
+    const payload = JSON.parse(
+      EncodingHelper.fromBase64(
+        payloadB64.replace(/-/g, '+').replace(/_/g, '/'), // Re-conversion URL -> Standard Base64
+      ),
+    ) as T;
 
-    if (typeof payloadRecord.exp === 'number') {
-      if (Date.now() >= payloadRecord.exp * 1000) {
-        throw new Error('Token expired');
-      }
+    if ((payload as any).exp && Date.now() >= (payload as any).exp * 1000) {
+      throw new Error('Token expired');
     }
 
     return payload;
-  }
-
-  static sign(payload: Record<string, any>, secret: string): string {
-    const header = { alg: 'HS256', typ: 'JWT' };
-
-    const encode = (obj: any) => Buffer.from(JSON.stringify(obj)).toString('base64url');
-
-    const encodedHeader = encode(header);
-    const encodedPayload = encode(payload);
-
-    const signature = crypto
-      .createHmac('sha256', secret)
-      .update(`${encodedHeader}.${encodedPayload}`)
-      .digest('base64url');
-
-    return `${encodedHeader}.${encodedPayload}.${signature}`;
   }
 }

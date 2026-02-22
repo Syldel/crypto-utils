@@ -1,4 +1,4 @@
-import * as crypto from 'crypto';
+import forge from 'node-forge';
 
 export interface EncryptedData {
   data: string;
@@ -7,41 +7,41 @@ export interface EncryptedData {
 }
 
 export class AesGcmUtil {
-  private static validateKey(key: Buffer | string): Buffer {
-    const encryptionKey = typeof key === 'string' ? Buffer.from(key, 'hex') : key;
-    if (encryptionKey.length !== 32) {
-      throw new Error('Invalid Key: Key must be 32 bytes (64 hex characters)');
-    }
-    return encryptionKey;
-  }
-  static encrypt(text: string, key: Buffer | string): EncryptedData {
-    const encryptionKey = this.validateKey(key);
-    const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv('aes-256-gcm', encryptionKey, iv);
+  static encrypt(text: string, keyHex: string): EncryptedData {
+    const key = forge.util.hexToBytes(keyHex);
+    const iv = forge.random.getBytesSync(12); // IV standard GCM = 12 octets
 
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
+    const cipher = forge.cipher.createCipher('AES-GCM', key);
+    cipher.start({ iv: iv });
+    cipher.update(forge.util.createBuffer(forge.util.encodeUtf8(text)));
+    cipher.finish();
 
     return {
-      data: encrypted,
-      iv: iv.toString('hex'),
-      tag: cipher.getAuthTag().toString('hex'),
+      data: forge.util.bytesToHex(cipher.output.getBytes()),
+      iv: forge.util.bytesToHex(iv),
+      tag: forge.util.bytesToHex(cipher.mode.tag.getBytes()),
     };
   }
 
-  static decrypt(payload: EncryptedData, key: Buffer | string): string {
-    const encryptionKey = this.validateKey(key);
-    const decipher = crypto.createDecipheriv(
-      'aes-256-gcm',
-      encryptionKey,
-      Buffer.from(payload.iv, 'hex'),
-    );
+  static decrypt(payload: EncryptedData, keyHex: string): string {
+    const key = forge.util.hexToBytes(keyHex);
+    const iv = forge.util.hexToBytes(payload.iv);
+    const tag = forge.util.hexToBytes(payload.tag);
+    const ciphertext = forge.util.hexToBytes(payload.data);
 
-    decipher.setAuthTag(Buffer.from(payload.tag, 'hex'));
+    const decipher = forge.cipher.createDecipher('AES-GCM', key);
+    decipher.start({
+      iv: iv,
+      tag: forge.util.createBuffer(tag),
+    });
+    decipher.update(forge.util.createBuffer(ciphertext));
 
-    let decrypted = decipher.update(payload.data, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
+    // finish() renvoie 'false' si le tag est invalide (données corrompues ou mauvaise clé)
+    const authenticated = decipher.finish();
+    if (!authenticated) {
+      throw new Error('Decryption failed: authentication failed (bad key or corrupted data)');
+    }
 
-    return decrypted;
+    return forge.util.decodeUtf8(decipher.output.getBytes());
   }
 }

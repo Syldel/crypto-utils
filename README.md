@@ -1,8 +1,60 @@
 # @syldel/crypto-utils
 
-Lightweight JWT and AES-256-GCM utilities
+A lightweight, universal, and dependency-safe cryptographic toolkit for Node.js, Web browsers, and Mobile frameworks (Ionic/Capacitor).
 
----
+## 🚀 Features
+ - **Universal Compatibility**: Works everywhere (Node, Angular, React, Ionic, NestJS).
+
+- **Zero Node-only Dependencies**: Replaced native crypto and Buffer with cross-platform alternatives.
+
+- **AES-256-GCM**: Secure authenticated encryption with integrity verification.
+
+- **Pure JWT**: Sign and verify JSON Web Tokens without heavy libraries.
+
+## 🛠 Usage
+
+### AES-GCM Encryption (Universal)
+Uses node-forge for authenticated encryption. It ensures that if the data is tampered with, decryption will fail.
+
+```ts
+import { AesGcmUtil } from '@syldel/crypto-utils';
+
+const key = "your-64-char-hex-key...";
+const message = "Hello World";
+
+// Encrypt
+const encrypted = AesGcmUtil.encrypt(message, key);
+console.log(encrypted); // { data: '...', iv: '...', tag: '...' }
+
+// Decrypt
+const original = AesGcmUtil.decrypt(encrypted, key);
+```
+
+### JWT Utilities
+Lightweight JWT implementation using crypto-js.
+
+```ts
+import { PureJwtUtil } from '@syldel/crypto-utils';
+
+const secret = "my-super-secret";
+const payload = { sub: "123", role: "admin" };
+
+// Sign
+const token = PureJwtUtil.sign(payload, secret);
+
+// Verify
+try {
+  const decoded = PureJwtUtil.verify(token, secret);
+} catch (err) {
+  console.error("Invalid or expired token");
+}
+```
+
+### 🔒 Security Principles
+
+- **Integrity First**: Using AES-GCM (via Node-Forge) ensures that any modification to the ciphertext or the tag results in a decryption error, preventing "padding oracle" and bit-flipping attacks.
+
+- **Isomorphic Helpers**: Custom EncodingHelper uses standard Web APIs (atob/btoa) to handle Base64URL without needing the Node.js Buffer object.
 
 ## 👨‍💻 Développement
 
@@ -24,8 +76,6 @@ Le projet utilise **ESLint** pour la logique et **Prettier** pour le formatage.
 npx eslint .
 ```
 
----
-
 ## 🔗 Utilisation en local (Development Workflow)
 
 Pour utiliser ce package dans tes autres projets sans le publier sur NPM :
@@ -38,8 +88,6 @@ Pour utiliser ce package dans tes autres projets sans le publier sur NPM :
     ```bash
     npm link @syldel/crypto-utils
     ```
-
----
 
 ## 📦 Publication
 
