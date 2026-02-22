@@ -1,4 +1,4 @@
-import forge from 'node-forge';
+import * as crypto from 'crypto';
 
 export interface EncryptedData {
   data: string;
@@ -7,41 +7,58 @@ export interface EncryptedData {
 }
 
 export class AesGcmUtil {
-  static encrypt(text: string, keyHex: string): EncryptedData {
-    const key = forge.util.hexToBytes(keyHex);
-    const iv = forge.random.getBytesSync(12); // IV standard GCM = 12 octets
+  private static readonly ALGORITHM = 'aes-256-gcm';
 
-    const cipher = forge.cipher.createCipher('AES-GCM', key);
-    cipher.start({ iv: iv });
-    cipher.update(forge.util.createBuffer(forge.util.encodeUtf8(text)));
-    cipher.finish();
-
-    return {
-      data: forge.util.bytesToHex(cipher.output.getBytes()),
-      iv: forge.util.bytesToHex(iv),
-      tag: forge.util.bytesToHex(cipher.mode.tag.getBytes()),
-    };
+  private static validateKey(key: Buffer | string): Buffer {
+    const encryptionKey = typeof key === 'string' ? Buffer.from(key, 'hex') : key;
+    if (encryptionKey.length !== 32) {
+      throw new Error('Invalid Key: Key must be 32 bytes (64 hex characters)');
+    }
+    return encryptionKey;
   }
 
-  static decrypt(payload: EncryptedData, keyHex: string): string {
-    const key = forge.util.hexToBytes(keyHex);
-    const iv = forge.util.hexToBytes(payload.iv);
-    const tag = forge.util.hexToBytes(payload.tag);
-    const ciphertext = forge.util.hexToBytes(payload.data);
+  /**
+   * Encrypts text using native Node.js crypto (AES-256-GCM)
+   */
+  static encrypt(text: string, key: Buffer | string): EncryptedData {
+    try {
+      const encryptionKey = this.validateKey(key);
+      const iv = crypto.randomBytes(12);
+      const cipher = crypto.createCipheriv(this.ALGORITHM, encryptionKey, iv);
 
-    const decipher = forge.cipher.createDecipher('AES-GCM', key);
-    decipher.start({
-      iv: iv,
-      tag: forge.util.createBuffer(tag),
-    });
-    decipher.update(forge.util.createBuffer(ciphertext));
+      let encrypted = cipher.update(text, 'utf8', 'hex');
+      encrypted += cipher.final('hex');
 
-    // finish() renvoie 'false' si le tag est invalide (données corrompues ou mauvaise clé)
-    const authenticated = decipher.finish();
-    if (!authenticated) {
-      throw new Error('Decryption failed: authentication failed (bad key or corrupted data)');
+      return {
+        data: encrypted,
+        iv: iv.toString('hex'),
+        tag: cipher.getAuthTag().toString('hex'),
+      };
+    } catch {
+      throw new Error('Encryption failed');
     }
+  }
 
-    return forge.util.decodeUtf8(decipher.output.getBytes());
+  /**
+   * Decrypts a payload using native Node.js crypto (AES-256-GCM)
+   */
+  static decrypt(payload: EncryptedData, key: Buffer | string): string {
+    try {
+      const encryptionKey = this.validateKey(key);
+      const decipher = crypto.createDecipheriv(
+        this.ALGORITHM,
+        encryptionKey,
+        Buffer.from(payload.iv, 'hex'),
+      );
+
+      decipher.setAuthTag(Buffer.from(payload.tag, 'hex'));
+
+      let decrypted = decipher.update(payload.data, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+
+      return decrypted;
+    } catch {
+      throw new Error('Decryption failed');
+    }
   }
 }

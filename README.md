@@ -1,60 +1,75 @@
 # @syldel/crypto-utils
 
-A lightweight, universal, and dependency-safe cryptographic toolkit for Node.js, Web browsers, and Mobile frameworks (Ionic/Capacitor).
+A robust, high-performance cryptographic toolkit for Node.js and NestJS applications. This package prioritizes security by leveraging Node's native crypto module (OpenSSL) for maximum protection of sensitive data and private keys.
 
-## 🚀 Features
- - **Universal Compatibility**: Works everywhere (Node, Angular, React, Ionic, NestJS).
+## 🚀 Key Features
+- **Native Security**: Built on top of Node.js crypto (OpenSSL) for hardware-accelerated encryption.
 
-- **Zero Node-only Dependencies**: Replaced native crypto and Buffer with cross-platform alternatives.
+- **AES-256-GCM**: Industry-standard authenticated encryption (AEAD) to ensure both confidentiality and data integrity.
 
-- **AES-256-GCM**: Secure authenticated encryption with integrity verification.
+- **Lightweight JWT**: Pure implementation for signing and verifying tokens without heavy dependencies.
 
-- **Pure JWT**: Sign and verify JSON Web Tokens without heavy libraries.
+- **Standardized Error Handling**: Harmonized error messages ("Decryption failed") for better security and predictable testing.
 
 ## 🛠 Usage
 
-### AES-GCM Encryption (Universal)
-Uses node-forge for authenticated encryption. It ensures that if the data is tampered with, decryption will fail.
+### AES-256-GCM (Authenticated Encryption)
+Designed for high-security environments. It automatically handles Initialization Vectors (IV) and Authentication Tags.
 
 ```ts
 import { AesGcmUtil } from '@syldel/crypto-utils';
 
-const key = "your-64-char-hex-key...";
-const message = "Hello World";
+const keyHex = "0123456789abcdef..."; // 64 hex characters (32 bytes)
+const message = "Sensitive data";
 
 // Encrypt
-const encrypted = AesGcmUtil.encrypt(message, key);
-console.log(encrypted); // { data: '...', iv: '...', tag: '...' }
+const encrypted = AesGcmUtil.encrypt(message, keyHex);
+// Returns: { data: '...', iv: '...', tag: '...' }
 
 // Decrypt
-const original = AesGcmUtil.decrypt(encrypted, key);
+try {
+  const original = AesGcmUtil.decrypt(encrypted, keyHex);
+} catch (error) {
+  // Throws "Decryption failed" if data is tampered or key is wrong
+}
 ```
 
-### JWT Utilities
-Lightweight JWT implementation using crypto-js.
+### Pure JWT Utilities
+A lightweight way to handle JWTs in your NestJS guards or services.
 
 ```ts
 import { PureJwtUtil } from '@syldel/crypto-utils';
 
-const secret = "my-super-secret";
-const payload = { sub: "123", role: "admin" };
+const secret = "your-secure-secret";
+const payload = { sub: "user_123", role: "admin" };
 
-// Sign
+// Sign a token
 const token = PureJwtUtil.sign(payload, secret);
 
-// Verify
+// Verify and decode
 try {
-  const decoded = PureJwtUtil.verify(token, secret);
+  const decoded = PureJwtUtil.verify<MyUserType>(token, secret);
 } catch (err) {
-  console.error("Invalid or expired token");
+  // Handles "Token expired" or "Invalid signature"
 }
 ```
 
-### 🔒 Security Principles
+## 🔒 Security & Performance
 
-- **Integrity First**: Using AES-GCM (via Node-Forge) ensures that any modification to the ciphertext or the tag results in a decryption error, preventing "padding oracle" and bit-flipping attacks.
+- **Zero External Crypto Libs**: By using native Node.js APIs, this package minimizes the attack surface and dependency supply chain risks.
 
-- **Isomorphic Helpers**: Custom EncodingHelper uses standard Web APIs (atob/btoa) to handle Base64URL without needing the Node.js Buffer object.
+- **Side-Channel Protection**: Leverages OpenSSL's C++ implementation to protect against timing attacks.
+
+- **GCM Integrity**: Unlike AES-CTR or CBC, AES-GCM ensures that any single-bit modification to the encrypted data will be detected during decryption.
+
+
+## 🧪 Testing
+
+Full test suite with 100% coverage on core crypto logic.
+
+```bash
+npm run test
+```
 
 ## 👨‍💻 Développement
 

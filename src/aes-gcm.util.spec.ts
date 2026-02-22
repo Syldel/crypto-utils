@@ -1,9 +1,9 @@
 import { AesGcmUtil } from './aes-gcm.util';
-import forge from 'node-forge';
+import * as crypto from 'crypto';
 
-describe('AesGcmUtil (Universal AES-GCM with Node-Forge)', () => {
+describe('AesGcmUtil', () => {
   // Génère une clé valide de 256 bits (64 caractères hexadécimaux)
-  const masterKey = forge.util.bytesToHex(forge.random.getBytesSync(32));
+  const masterKey = crypto.randomBytes(32).toString('hex');
   const plainText = 'Top secret message 123! 🚀';
 
   describe('encrypt', () => {
@@ -40,7 +40,7 @@ describe('AesGcmUtil (Universal AES-GCM with Node-Forge)', () => {
 
     it('should throw a "Decryption failed" error when using the wrong key', () => {
       const encrypted = AesGcmUtil.encrypt(plainText, masterKey);
-      const wrongKey = forge.util.bytesToHex(forge.random.getBytesSync(32));
+      const wrongKey = crypto.randomBytes(32).toString('hex');
 
       expect(() => {
         AesGcmUtil.decrypt(encrypted, wrongKey);
