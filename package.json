@@ -1,0 +1,49 @@
+{
+  "name": "@syldel/crypto-utils",
+  "version": "1.0.0",
+  "description": "Lightweight JWT and AES-256-GCM utilities",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "clean": "rm -rf dist",
+    "build": "npm run lint && npm run clean && tsc -p tsconfig.json",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "prepublishOnly": "npm run build",
+    "release": "npm run build && npm version patch && npm publish"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "jwt",
+    "aes",
+    "crypto",
+    "security",
+    "nestjs"
+  ],
+  "author": "Syl. D.",
+  "license": "ISC",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/jest": "^30.0.0",
+    "eslint": "^10.0.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jsonc": "^3.0.0",
+    "eslint-plugin-prettier": "^5.5.5",
+    "jest": "^30.2.0",
+    "jsonc-eslint-parser": "^3.1.0",
+    "prettier": "^3.8.1",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.56.0"
+  },
+  "overrides": {
+    "minimatch": "^10.2.1"
+  }
+}
